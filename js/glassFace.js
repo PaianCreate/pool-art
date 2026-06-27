@@ -109,12 +109,13 @@ import * as THREE from 'three';
           // 流動焦散光紋（caustics）：用 plane uv（vUv）→ 光紋密度不受 cover 影響，
           //   手機(直式)也有完整密集的流動水光，不會被稀釋成看似靜止
           vec2 p = vUv * 4.5;
-          float t = uTime * 0.8;                        // 速度加快 → 水光更明顯流動
+          float t = uTime * 0.85;                       // 速度加快 → 水光更明顯流動
           float c = sin(p.x + t) * sin(p.y - t * 0.8)
-                  + sin(p.x * 1.6 - t * 0.7) * sin(p.y * 1.4 + t * 0.5);
+                  + sin(p.x * 1.6 - t * 0.7) * sin(p.y * 1.4 + t * 0.5)
+                  + 0.7 * sin(p.x * 2.4 + t * 0.6) * sin(p.y * 2.1 - t * 0.45);  // 第三層 → 網狀更豐富
           c = max(c, 0.0);
-          c = pow(c * 0.5, 1.5);
-          col += vec3(0.52, 0.68, 0.8) * c * 0.9;        // 偏藍白流動水光（再加強）
+          c = pow(c * 0.42, 1.05);                       // 降低收斂 → 亮紋更廣更明顯
+          col += vec3(0.55, 0.72, 0.86) * c * 1.5;       // 偏藍白流動水光（大幅加強）
           gl_FragColor = vec4(col, 1.0);
         }
       `,
