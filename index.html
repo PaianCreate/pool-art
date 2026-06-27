@@ -332,24 +332,33 @@
 
     /* ── 手機 RWD ── */
     @media (max-width: 600px) {
-      /* 故事卡：改成貼齊左右、上方，留出底部輸入空間 */
+      /* 故事卡：移到畫面下方，高度約 1/3（上方 2/3 留給互動臉）*/
       #story-panel {
-        top: 18px;
+        top: auto;
+        bottom: 14px;
         left: 14px; right: 14px;
         transform: none;
         width: auto;
-        height: min(58vh, calc(100vh - 150px));
-        padding: 22px 20px;
+        height: 33vh;
+        padding: 16px 16px;
         border-radius: 22px;
       }
-      #story-panel .story-label { font-size: 15px; margin-bottom: 12px; }
+      #story-panel .story-label { font-size: 15px; margin-bottom: 8px; }
       #story-panel .story-label strong { font-size: 18px; }
-      #story-panel .story-text { font-size: 16px; line-height: 1.85; }
-      /* 底部漸層淡出縮短，配合較矮卡片 */
+      #story-panel .story-text { font-size: 15.5px; line-height: 1.8; }
+      /* 小框內容：取消上下淡出遮罩，改顯示細捲軸（依草圖）*/
       #story-scroll {
-        -webkit-mask-image: linear-gradient(to bottom, black 0, black calc(100% - 80px), transparent 100%);
-        mask-image: linear-gradient(to bottom, black 0, black calc(100% - 80px), transparent 100%);
+        -webkit-mask-image: none;
+        mask-image: none;
+        padding-right: 8px;
+        scrollbar-width: thin;                                 /* Firefox 顯示細捲軸 */
+        scrollbar-color: rgba(255,255,255,0.5) transparent;
       }
+      #story-scroll::-webkit-scrollbar { display: block; width: 5px; }
+      #story-scroll::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.5); border-radius: 3px;
+      }
+      #story-scroll::-webkit-scrollbar-track { background: transparent; }
 
       /* 輸入框：左右留邊不溢出 */
       #input-bar {
