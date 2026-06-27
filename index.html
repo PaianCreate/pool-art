@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pool</title>
+
+  <!-- Noto Sans TC 黑體（故事文字用）-->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.3/lib/p5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/howler@2.2.4/dist/howler.min.js"></script>
+
+  <!-- Three.js（玻璃 3D 臉用）-->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #5ab0c8;
+      font-family: 'Georgia', serif;
+    }
+
+    /* ── 背景圖：全螢幕（fixed + inset:0 貼齊視口，不受 vh/工具列影響）── */
+    #pool-bg {
+      position: fixed;
+      inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      z-index: 0;
+      /* 圖片載入前 / 任何露邊時的底色：用泳池圖鋪底 + 深藍打底，露出也不突兀 */
+      background: url('assets/img/pool-bg.png') center center / cover no-repeat, #2f6285;
+    }
+
+    /* ── p5 canvas：透明，疊在圖片上 ── */
+    /* 套上同一個水波濾鏡，讓金魚 / 泡泡跟背景一起飄 */
+    /* z-index 2：在水質臉（#waterface-canvas, z1）之上，泡泡金魚浮在臉前 */
+    #defaultCanvas0 {
+      position: fixed !important;
+      top: 0; left: 0;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 2;
+      /* 不套水波濾鏡 → 泡泡 / 金魚保持原形不被扭曲 */
+    }
+
+    /* ── UI overlay ── */
+    #ui-layer {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    /* 故事文字 — frosted glass 卡片 */
+    #story-panel {
+      position: absolute;
+      top: 50%; left: 36px;
+      transform: translateY(-50%);          /* 垂直置中 */
+      width: 360px;
+      /* 取小值：視窗夠高 680，變矮自動縮短 → 永不破窗（響應式）*/
+      height: min(680px, calc(100vh - 72px));
+      box-sizing: border-box;
+      padding: 30px 28px;
+      display: flex;
+      flex-direction: column;
+      pointer-events: auto;
+      /* frosted glass：高透明，看得到後方波光、只輕微模糊提亮（參照參考圖）*/
+      background: linear-gradient(140deg, rgba(210,232,250,0.14), rgba(170,205,235,0.04));
+      backdrop-filter: blur(7px) saturate(140%) brightness(1.06);
+      -webkit-backdrop-filter: blur(7px) saturate(140%) brightness(1.06);
+      border: none;                               /* 邊框改用 ::before 漸層高光 */
+      border-radius: 28px;
+      box-shadow:
+        0 16px 50px rgba(6,20,45,0.34),           /* 外陰影：卡片浮起 */
+        inset 0 1px 1px rgba(255,255,255,0.5),    /* 上緣玻璃反光 */
+        inset 0 -1px 1px rgba(255,255,255,0.12);  /* 下緣微光 */
+    }
+    /* 漸層玻璃外框：左上亮高光 → 對角暗 → 右下回光，做出真實玻璃邊緣 */
+    #story-panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1.5px;
+      background: linear-gradient(140deg,
+        rgba(255,255,255,0.75) 0%,
+        rgba(255,255,255,0.1) 35%,
+        rgba(255,255,255,0.02) 60%,
+        rgba(255,255,255,0.4) 100%);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+    #story-panel .story-label {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 17px;          /* 放大兩級（原 13）*/
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 16px;
+      flex-shrink: 0;
+      text-shadow: 0 1px 3px rgba(4,18,40,0.9);
+    }
+    #story-panel .story-label strong {
+      font-weight: 700;       /* 「水女兒」粗體 */
+      color: rgba(255,255,255,0.92);
+      font-size: 20px;          /* 放大兩級（原 16）*/
+    }
+    /* 可滾動的故事內容區 */
+    #story-scroll {
+      position: relative;
+      flex: 1 1 auto;       /* 填滿卡片剩餘高度 */
+      min-height: 0;        /* 關鍵：允許在 flex 容器內收縮並內部滾動，不撐高溢出 */
+      overflow-y: auto;
+      /* 上下緣柔化淡出，暗示內容可往下捲 */
+      -webkit-mask-image: linear-gradient(to bottom, black 0, black calc(100% - 140px), transparent 100%);
+      mask-image: linear-gradient(to bottom, black 0, black calc(100% - 140px), transparent 100%);
+      scrollbar-width: none;            /* Firefox 隱藏卷軸 */
+    }
+    #story-scroll::-webkit-scrollbar { display: none; } /* WebKit 隱藏卷軸 */
+    /* 捲到故事結尾時：去掉底部漸層，讓 The End. 完整顯示 */
+    #story-scroll.at-end {
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+    #story-panel .story-end {
+      margin-top: 0.4em;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.92);
+      font-style: normal;
+    }
+    #story-panel .story-text {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 17.5px;        /* 放大兩級（原 13.5）*/
+      font-weight: 400;
+      letter-spacing: 0.05em;   /* 字距再寬一點 */
+      line-height: 1.9;
+      color: rgba(255,255,255,0.88);
+      padding-bottom: 8px;
+      /* 深藍描邊陰影：在亮藍泳池背景上也讀得清，不擋畫面 */
+      text-shadow: 0 1px 4px rgba(4,18,40,0.95), 0 0 2px rgba(4,18,40,0.85);
+    }
+    #story-panel .story-text p {
+      margin: 0 0 1.15em 0;
+    }
+
+    /* Debug 面板 */
+    #debug-panel {
+      position: absolute;
+      bottom: 110px; right: 36px;
+      display: none; flex-direction: column; gap: 5px;
+      pointer-events: none;
+    }
+    #debug-panel.visible { display: flex; }
+    .debug-row {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 10px; font-family: 'Courier New', monospace;
+      color: rgba(255,220,100,0.65);
+    }
+    .debug-key { width: 48px; opacity: 0.6; }
+    .debug-val { width: 36px; text-align: right; }
+    .debug-bar {
+      width: 72px; height: 6px;
+      background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;
+    }
+    .debug-fill {
+      height: 100%; border-radius: 3px;
+      background: rgba(255,220,100,0.55);
+      transition: width 0.05s;
+    }
+
+    /* 輸入框 */
+    #input-bar {
+      position: absolute;
+      bottom: 38px; left: 50%; transform: translateX(-50%);
+      width: 360px;
+      pointer-events: auto;
+      display: flex; flex-direction: column; align-items: center; gap: 9px;
+    }
+    #input-bar .input-hint {
+      font-size: 11px; letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.28); text-align: center;
+    }
+    .input-row { display: flex; width: 100%; }
+    #word-input {
+      flex: 1; height: 42px; padding: 0 18px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-right: none;
+      border-radius: 21px 0 0 21px;
+      color: rgba(255,255,255,0.88);
+      font-size: 14px; font-family: 'Georgia', serif; font-style: italic;
+      outline: none;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    #word-input::placeholder { color: rgba(255,255,255,0.25); }
+    #word-input:focus {
+      background: rgba(255,255,255,0.16);
+      border-color: rgba(255,255,255,0.38);
+    }
+    #submit-btn {
+      height: 42px; padding: 0 20px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 0 21px 21px 0;
+      color: rgba(255,255,255,0.6);
+      font-size: 16px; cursor: pointer;
+      transition: background 0.2s;
+    }
+    #submit-btn:hover {
+      background: rgba(255,255,255,0.24);
+      color: rgba(255,255,255,0.92);
+    }
+
+    /* 隱藏 webcam */
+    #webcam {
+      position: fixed; top: -9999px; left: -9999px;
+      width: 640px; height: 480px; opacity: 0;
+    }
+
+    /* ── 入口層 ── */
+    #enter-screen {
+      position: fixed; inset: 0;
+      z-index: 50;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      /* 比背景略暗，聚焦在卡片上 */
+      background: radial-gradient(120% 120% at 50% 40%,
+        rgba(8,30,58,0.28) 0%, rgba(6,22,48,0.55) 100%);
+      backdrop-filter: blur(3px) brightness(0.96);
+      -webkit-backdrop-filter: blur(3px) brightness(0.96);
+      opacity: 1;
+      transition: opacity 1.1s ease;
+    }
+    #enter-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #enter-card {
+      position: relative;
+      width: min(440px, 100%);
+      padding: 48px 40px 40px;
+      text-align: center;
+      border-radius: 32px;
+      background: linear-gradient(140deg, rgba(210,232,250,0.16), rgba(170,205,235,0.05));
+      backdrop-filter: blur(9px) saturate(140%) brightness(1.06);
+      -webkit-backdrop-filter: blur(9px) saturate(140%) brightness(1.06);
+      box-shadow:
+        0 20px 60px rgba(6,20,45,0.4),
+        inset 0 1px 1px rgba(255,255,255,0.5),
+        inset 0 -1px 1px rgba(255,255,255,0.12);
+    }
+    /* 玻璃漸層外框（同故事卡）*/
+    #enter-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: inherit;
+      padding: 1.5px;
+      background: linear-gradient(140deg,
+        rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.1) 35%,
+        rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.4) 100%);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+    #enter-card .enter-title {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 38px; font-weight: 700; letter-spacing: 0.16em;
+      color: rgba(255,255,255,0.96);
+      text-shadow: 0 2px 10px rgba(4,18,40,0.7);
+    }
+    #enter-card .enter-sub {
+      margin-top: 8px;
+      font-family: 'Georgia', serif; font-style: italic;
+      font-size: 15px; letter-spacing: 0.2em;
+      color: rgba(255,255,255,0.55);
+    }
+    #enter-card .enter-desc {
+      margin: 26px 0 32px;
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 15px; font-weight: 400; line-height: 2;
+      letter-spacing: 0.05em;
+      color: rgba(255,255,255,0.82);
+      text-shadow: 0 1px 4px rgba(4,18,40,0.85);
+    }
+    #enter-btn {
+      pointer-events: auto;
+      padding: 14px 44px;
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 16px; font-weight: 500; letter-spacing: 0.18em;
+      color: rgba(255,255,255,0.95);
+      background: rgba(255,255,255,0.14);
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.25s, transform 0.15s, box-shadow 0.25s;
+    }
+    #enter-btn:hover {
+      background: rgba(255,255,255,0.26);
+      box-shadow: 0 0 22px rgba(180,225,255,0.4);
+    }
+    #enter-btn:active { transform: scale(0.96); }
+    #enter-card .enter-note {
+      margin-top: 22px;
+      font-size: 11px; letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.4);
+      font-family: 'Noto Sans TC', sans-serif;
+    }
+
+    /* ── 手機 RWD ── */
+    @media (max-width: 600px) {
+      /* 故事卡：改成貼齊左右、上方，留出底部輸入空間 */
+      #story-panel {
+        top: 18px;
+        left: 14px; right: 14px;
+        transform: none;
+        width: auto;
+        height: min(58vh, calc(100vh - 150px));
+        padding: 22px 20px;
+        border-radius: 22px;
+      }
+      #story-panel .story-label { font-size: 15px; margin-bottom: 12px; }
+      #story-panel .story-label strong { font-size: 18px; }
+      #story-panel .story-text { font-size: 16px; line-height: 1.85; }
+      /* 底部漸層淡出縮短，配合較矮卡片 */
+      #story-scroll {
+        -webkit-mask-image: linear-gradient(to bottom, black 0, black calc(100% - 80px), transparent 100%);
+        mask-image: linear-gradient(to bottom, black 0, black calc(100% - 80px), transparent 100%);
+      }
+
+      /* 輸入框：左右留邊不溢出 */
+      #input-bar {
+        bottom: 24px;
+        width: auto; left: 16px; right: 16px;
+        transform: none;
+      }
+
+      /* 入口卡：縮一點 */
+      #enter-card { padding: 40px 26px 34px; border-radius: 26px; }
+      #enter-card .enter-title { font-size: 32px; letter-spacing: 0.12em; }
+      #enter-card .enter-sub { font-size: 13px; }
+      #enter-card .enter-desc { font-size: 14px; margin: 22px 0 28px; }
+      #enter-btn { padding: 13px 38px; font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SVG Water displacement filter -->
+  <svg style="position:absolute;width:0;height:0;overflow:hidden">
+    <defs>
+      <filter id="wave-filter" x="0%" y="0%" width="100%" height="100%"
+              color-interpolation-filters="linearRGB">
+        <feTurbulence
+          id="svg-turb"
+          type="turbulence"
+          baseFrequency="0.012 0.008"
+          numOctaves="3"
+          seed="2"
+          result="noise"/>
+        <feDisplacementMap
+          id="svg-disp"
+          in="SourceGraphic"
+          in2="noise"
+          scale="7"
+          xChannelSelector="R"
+          yChannelSelector="G"/>
+      </filter>
+    </defs>
+  </svg>
+
+  <!-- 背景圖片：把你的泳池圖放在 assets/img/pool-bg.png -->
+  <img id="pool-bg" src="assets/img/pool-bg.png" alt="">
+
+  <!-- 隱藏 webcam -->
+  <video id="webcam" autoplay playsinline></video>
+
+  <!-- UI layer -->
+  <div id="ui-layer">
+
+    <div id="story-panel">
+      <div class="story-label"><strong>水女兒</strong></div>
+      <div id="story-scroll">
+        <div class="story-text" id="story-content">
+          <p>游泳池裡住著一個水精靈，叫水女兒。她愛在水裡唱歌，人們卻聽不見，只看見水面浮起一串泡泡。她每天到池底收集人們遺落的亮晶晶——髮夾、耳環、戒指，藏在角落，那裡總閃著細碎的光，像一片沉睡的星空。</p>
+          <p>有天，一個小男孩掉了一朵粉色雛菊進池裡。他趴在池邊伸手去撈，花卻輕輕旋轉著沉了下去，他只能對著水面發呆。</p>
+          <p>水女兒從沒見過這麼美的東西。花瓣像晚霞一樣柔軟，顏色像春天剛醒的天空。她用水流把雛菊捲到池底，放進自己最珍貴的泡泡裡。</p>
+          <p>之後幾天，男孩常來池邊坐著，望著水面，像在等什麼。水女兒知道他在找花，卻捨不得還。她帶著花巡視水底，唱歌給它聽，那段時間，水底特別明亮。</p>
+          <p>可男孩仍每天出現。看著他晃啊晃的小腳，水女兒慢慢懂了——有些東西珍貴，不是因為漂亮，而是因為有人在想念它。</p>
+          <p>傍晚，泳池快關門了。她抱著泡泡坐了很久，最後輕輕鬆開手。</p>
+          <p>透明的泡泡帶著雛菊往上漂，穿過波光，靠近岸邊。男孩急忙伸手，指尖一碰——啵。</p>
+          <p>泡泡破開，一段從未聽過的旋律從水面流瀉出來。像風，像月光，也像遠方有人在唱歌。</p>
+          <p>男孩愣住，低頭看著手中的雛菊，不知道那是誰的歌，也不知道花怎麼回來的。</p>
+          <p>只有池底的水女兒知道：那是她送出的禮物，也是她最喜歡的一首歌。</p>
+          <p class="story-end">The End.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="debug-panel">
+      <div class="debug-row">
+        <span class="debug-key">MAR</span>
+        <span class="debug-val" id="d-mar">0.00</span>
+        <div class="debug-bar"><div class="debug-fill" id="db-mar"></div></div>
+      </div>
+      <div class="debug-row">
+        <span class="debug-key">EAR</span>
+        <span class="debug-val" id="d-ear">0.00</span>
+        <div class="debug-bar"><div class="debug-fill" id="db-ear"></div></div>
+      </div>
+      <div class="debug-row">
+        <span class="debug-key">YAW</span>
+        <span class="debug-val" id="d-yaw">0.00</span>
+        <div class="debug-bar"><div class="debug-fill" id="db-yaw"></div></div>
+      </div>
+      <div class="debug-row">
+        <span class="debug-key">PITCH</span>
+        <span class="debug-val" id="d-pitch">0.00</span>
+        <div class="debug-bar"><div class="debug-fill" id="db-pitch"></div></div>
+      </div>
+    </div>
+
+
+  </div>
+
+  <!-- 入口層：點 Enter 才啟動鏡頭（使用者手勢 → 鏡頭/音訊權限）-->
+  <div id="enter-screen">
+    <div id="enter-card">
+      <div class="enter-title">水女兒</div>
+      <div class="enter-sub">The Water Daughter</div>
+      <p class="enter-desc">這是一面會呼吸的水。<br>靠近鏡頭，讓你的臉化成池底的玻璃。</p>
+      <button id="enter-btn">進入水中</button>
+      <div class="enter-note">需要開啟鏡頭權限 · 建議戴耳機</div>
+    </div>
+  </div>
+
+  <!-- JS modules（順序重要） -->
+  <script src="js/faceParams.js?v=10"></script>
+  <script src="js/bubbleSystem.js"></script>
+  <script src="js/fishSystem.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/sketch.js"></script>
+  <script src="js/triangulation.js"></script>
+  <script type="module" src="js/glassFace.js"></script>
+  <script src="js/waterRipple.js"></script>
+  <script src="js/ui.js"></script>
+
+</body>
+</html>
