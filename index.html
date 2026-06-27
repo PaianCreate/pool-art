@@ -46,7 +46,7 @@
       width: 100%; height: 100%;
       z-index: 0;
       /* 圖片載入前 / 任何露邊時的底色：用泳池圖鋪底 + 深藍打底，露出也不突兀 */
-      background: url('assets/img/pool-bg.png?v=2') center center / cover no-repeat, #2f6285;
+      background: url('assets/img/pool-bg.jpg?v=3') center center / cover no-repeat, #2f6285;
       /* 注意：平常這層被 WebGL bgPlane(glassFace, z1) 蓋住，只在 WebGL 失敗時當 fallback。
          水波/caustics 動態改在 glassFace 的 bgPlane shader 做，這裡不套 SVG 濾鏡（iOS 會壓縮比例）*/
     }
@@ -476,7 +476,7 @@
   <script src="js/audio.js"></script>
   <script src="js/sketch.js"></script>
   <script src="js/triangulation.js"></script>
-  <script type="module" src="js/glassFace.js?v=13"></script>
+  <script type="module" src="js/glassFace.js?v=14"></script>
   <script src="js/waterRipple.js"></script>
   <script src="js/ui.js"></script>
 

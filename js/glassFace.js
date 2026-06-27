@@ -128,8 +128,8 @@ import * as THREE from 'three';
 
     // 手機(直式)載手機專屬底圖、桌機載原圖；手機圖載入失敗自動退回原圖（不黑）
     const portrait = window.innerWidth < window.innerHeight;
-    const DESKTOP_BG = 'assets/img/pool-bg.png?v=2';
-    const MOBILE_BG  = 'assets/img/pool-bg-mobile.jpg?v=1';
+    const DESKTOP_BG = 'assets/img/pool-bg.jpg?v=3';
+    const MOBILE_BG  = 'assets/img/pool-bg-mobile.jpg?v=2';
     loadBg(portrait ? MOBILE_BG : DESKTOP_BG, portrait ? DESKTOP_BG : null);
 
     // 補兩盞光打出尖銳高光（玻璃表面濕亮的白色亮塊，勾勒五官）
