@@ -39,6 +39,12 @@
     let lastCx = null, lastCy = null;   // 上一幀臉中心（判斷有沒有晃動）
 
     p.setup = function () {
+      // 手機直式螢幕→水波網格更密、波更平滑斜率更小→反光更暗看不見，
+      //   故手機加強補償，讓臉部晃動波紋的明顯度比照桌機
+      if (window.innerWidth <= 600) {
+        CFG.EDGE_AMP *= 1.6;   // 13 → ~21
+        CFG.LIGHT *= 1.9;      // 4 → ~7.6
+      }
       const cnv = p.createCanvas(p.windowWidth, p.windowHeight);
       cnv.id('waterripple-canvas');
       cnv.style('position', 'fixed');

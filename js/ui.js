@@ -36,6 +36,10 @@
         enterScreen.classList.add('hidden');
         setTimeout(() => enterScreen.remove(), 1200);
 
+        // 文字框淡入（與入口層淡出同時，順暢進場）
+        const sp = document.getElementById('story-panel');
+        if (sp) sp.classList.add('revealed');
+
         camPromise
           .then((stream) => {
             stream.getTracks().forEach((t) => t.stop());   // 釋放，交給 MediaPipe 重新開
