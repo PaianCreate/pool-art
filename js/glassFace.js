@@ -106,14 +106,15 @@ import * as THREE from 'three';
         void main() {
           vec2 uv = coverUV(vUv);
           vec3 col = texture2D(uTex, uv).rgb;          // 泳池格紋（cover 不變形）
-          // 流動焦散光紋（caustics）：多層交錯 sin → 網狀水光在池底游移流動
-          vec2 p = uv * 4.0;
-          float t = uTime * 0.7;                        // 速度加快 → 水光更明顯流動
+          // 流動焦散光紋（caustics）：用 plane uv（vUv）→ 光紋密度不受 cover 影響，
+          //   手機(直式)也有完整密集的流動水光，不會被稀釋成看似靜止
+          vec2 p = vUv * 4.5;
+          float t = uTime * 0.8;                        // 速度加快 → 水光更明顯流動
           float c = sin(p.x + t) * sin(p.y - t * 0.8)
                   + sin(p.x * 1.6 - t * 0.7) * sin(p.y * 1.4 + t * 0.5);
           c = max(c, 0.0);
-          c = pow(c * 0.5, 1.6);
-          col += vec3(0.5, 0.66, 0.78) * c * 0.7;       // 偏藍白流動水光（加強）
+          c = pow(c * 0.5, 1.5);
+          col += vec3(0.52, 0.68, 0.8) * c * 0.9;        // 偏藍白流動水光（再加強）
           gl_FragColor = vec4(col, 1.0);
         }
       `,

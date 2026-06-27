@@ -403,10 +403,10 @@
       #story-panel .story-label { font-size: 15px; margin-bottom: 8px; }
       #story-panel .story-label strong { font-size: 18px; }
       #story-panel .story-text { font-size: 15.5px; line-height: 1.8; }
-      /* 小框內容：取消上下淡出遮罩，改顯示細捲軸（依草圖）*/
+      /* 小框內容：底部淡化漸層（暗示可往下捲）+ 顯示細捲軸 */
       #story-scroll {
-        -webkit-mask-image: none;
-        mask-image: none;
+        -webkit-mask-image: linear-gradient(to bottom, black 0, black calc(100% - 50px), transparent 100%);
+        mask-image: linear-gradient(to bottom, black 0, black calc(100% - 50px), transparent 100%);
         padding-right: 8px;
         scrollbar-width: thin;                                 /* Firefox 顯示細捲軸 */
         scrollbar-color: rgba(255,255,255,0.5) transparent;
@@ -530,7 +530,7 @@
   <script src="js/audio.js"></script>
   <script src="js/sketch.js"></script>
   <script src="js/triangulation.js"></script>
-  <script type="module" src="js/glassFace.js?v=15"></script>
+  <script type="module" src="js/glassFace.js?v=16"></script>
   <script src="js/waterRipple.js"></script>
   <script src="js/ui.js?v=3"></script>
 
