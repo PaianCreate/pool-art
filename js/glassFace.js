@@ -122,12 +122,15 @@ import * as THREE from 'three';
     bgPlane.position.z = -1.5;          // 臉後方 → 被臉折射
     scene.add(bgPlane);
     updateBgScale();
-    new THREE.TextureLoader().load('assets/img/pool-bg.png?v=2', (tex) => {
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;       // cover 取中央，不需重複
-      bgMat.uniforms.uTex.value = tex;
-      if (tex.image) bgMat.uniforms.uTexAspect.value = tex.image.width / tex.image.height;
-    });
+
+    // 先放淺藍純色底，避免底圖載入前/失敗時整片黑
+    bgMat.uniforms.uTex.value = makeFlatTex(143, 198, 224);
+
+    // 手機(直式)載手機專屬底圖、桌機載原圖；手機圖載入失敗自動退回原圖（不黑）
+    const portrait = window.innerWidth < window.innerHeight;
+    const DESKTOP_BG = 'assets/img/pool-bg.png?v=2';
+    const MOBILE_BG  = 'assets/img/pool-bg-mobile.png?v=1';
+    loadBg(portrait ? MOBILE_BG : DESKTOP_BG, portrait ? DESKTOP_BG : null);
 
     // 補兩盞光打出尖銳高光（玻璃表面濕亮的白色亮塊，勾勒五官）
     const key = new THREE.DirectionalLight(0xffffff, CFG.KEY_LIGHT);
@@ -231,6 +234,29 @@ import * as THREE from 'three';
     camera = new THREE.OrthographicCamera(-a, a, 1, -1, -10, 10);
     camera.position.set(0, 0, 3);
     camera.lookAt(0, 0, 0);
+  }
+
+  // 1×1 純色 texture（底圖載入前的底色，避免黑屏）
+  function makeFlatTex(r, g, b) {
+    const t = new THREE.DataTexture(new Uint8Array([r, g, b, 255]), 1, 1);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.needsUpdate = true;
+    return t;
+  }
+
+  // 載背景底圖到 bgPlane；失敗則載 fallback（手機圖沒放成功時退回原圖，不會變黑）
+  function loadBg(url, fallback) {
+    new THREE.TextureLoader().load(
+      url,
+      (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;      // cover 取中央，不需重複
+        bgMat.uniforms.uTex.value = tex;
+        if (tex.image) bgMat.uniforms.uTexAspect.value = tex.image.width / tex.image.height;
+      },
+      undefined,
+      () => { if (fallback) loadBg(fallback, null); }
+    );
   }
 
   // 背景平面填滿正交視野；比例由 shader 的 coverUV 處理（不靠拉伸 plane）
