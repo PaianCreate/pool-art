@@ -399,6 +399,9 @@
         height: 33vh;
         padding: 16px 16px;
         border-radius: 22px;
+        /* 手機 Safari 毛玻璃霧化較重→文字框顯太實，減弱 blur/brightness 讓它更通透、比照桌機觀感 */
+        backdrop-filter: blur(3px) saturate(130%) brightness(1.0);
+        -webkit-backdrop-filter: blur(3px) saturate(130%) brightness(1.0);
       }
       #story-panel .story-label { font-size: 15px; margin-bottom: 8px; }
       #story-panel .story-label strong { font-size: 18px; }
