@@ -121,6 +121,8 @@
       this.size = size;
       this.dir  = dir;
       this.speed = Math.random() * (CFG.SPEED_MAX - CFG.SPEED_MIN) + CFG.SPEED_MIN;
+      // 手機螢幕窄，同樣 px/frame 視覺上更快 → 按螢幕寬比例降速，相對速度比照桌機
+      if (window.innerWidth <= 600) this.speed *= window.innerWidth / 1280;
       this.wobble = Math.random() * Math.PI * 2;
       this.tailPhase = Math.random() * Math.PI * 2;
       this.life   = 0;
