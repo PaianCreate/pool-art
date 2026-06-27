@@ -138,14 +138,17 @@
       this.tailPhase += CFG.TAIL_SPEED;
       this.x += this.speed * this.dir;
       this.y += Math.sin(this.wobble) * 0.5;
-      if (this.life >= this.maxLife || this.x > window.innerWidth + 130 || this.x < -130) this.dead = true;
+      // 游出畫面才消失（不再定時消失 → 慢速的手機魚也能一路游到邊框）；life 上限只是安全網
+      if (this.x > window.innerWidth + 130 || this.x < -130 || this.life > 1200) this.dead = true;
     }
 
     draw(p) {
-      const alpha = this.life < 8
-        ? p.map(this.life, 0, 8, 0, 1)
-        : p.map(this.life, this.maxLife * 0.5, this.maxLife, 1, 0);
-      const A = Math.max(0, Math.min(1, alpha));   // clamp 0~1（globalAlpha 設 >1 會被瀏覽器忽略 → 魚變透明）
+      // 淡入後維持，游到接近左右邊框才淡出（不再定時淡出）
+      const W = window.innerWidth;
+      const edge = Math.min(this.x, W - this.x);          // 離最近左右邊框的距離
+      const fadeIn  = this.life < 8 ? this.life / 8 : 1;
+      const fadeOut = edge < 110 ? edge / 110 : 1;        // 邊框 110px 內漸淡
+      const A = Math.max(0, Math.min(1, Math.min(fadeIn, fadeOut)));   // clamp 0~1
 
       const ctx = p.drawingContext;
       const tex = this.tex;

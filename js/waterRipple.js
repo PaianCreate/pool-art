@@ -13,19 +13,19 @@
 
   const CFG = {
     COLS: 170,            // 水面網格寬
-    DAMP: 0.945,          // 波衰減（調大 → 波持續更久、晃動更明顯）
-    EDGE_AMP: 30,         // 沿臉輪廓每點注入強度（加大 → 波紋更明顯）
-    MOVE_THRESHOLD: 2,    // 臉移動超過這距離(px)才出波（放低 → 輕微晃就出波）
-    LIGHT: 10,            // 水光強度（加強）— 一階斜率畫的薄膜反光
+    DAMP: 0.9,            // 波衰減（調小 → 晃動更快平息、動態幅度小）
+    EDGE_AMP: 13,         // 沿臉輪廓每點注入強度（減少水波量）
+    MOVE_THRESHOLD: 5,    // 臉移動超過這距離(px)才出波（靜止不出波）
+    LIGHT: 4,             // 水光強度（更弱）— 一階斜率畫的薄膜反光
     BORDER: 12,           // 邊界吸收圈數（波不反彈）
     TINT: [175, 222, 255],
     BASE_FACE_SCALE: 1.75,
 
     // 光影折射焦散（caustics）— 用水波曲率(二階 Laplacian)聚光成尖銳亮紋
     // 波凹下處把光聚焦變亮；波平息→無曲率→亮紋消失，故只在晃動時出現
-    CAUSTIC: 0.05,            // 曲率放大量（調大→更多亮紋）
-    CAUSTIC_SHARP: 2.4,       // 亮紋銳利度（>1 越尖銳越稀疏，像真實焦散）
-    CAUSTIC_BRIGHT: 160,      // 亮紋最大亮度（加強）
+    CAUSTIC: 0.045,           // 曲率放大量（調大→更多亮紋）
+    CAUSTIC_SHARP: 2.6,       // 亮紋銳利度（>1 越尖銳越稀疏，像真實焦散）
+    CAUSTIC_BRIGHT: 120,      // 亮紋最大亮度
     CAUSTIC_TINT: [232, 248, 255], // 焦散偏白（折射聚光是白光，與藍白薄膜對比）
   };
 
@@ -39,12 +39,6 @@
     let lastCx = null, lastCy = null;   // 上一幀臉中心（判斷有沒有晃動）
 
     p.setup = function () {
-      // 手機螢幕小、臉佔比大 → 同強度視覺上更明顯，降強度讓波紋比照桌機視覺
-      if (window.innerWidth <= 600) {
-        CFG.EDGE_AMP *= 0.5;        // 30 → 15
-        CFG.LIGHT *= 0.55;          // 10 → 5.5
-        CFG.CAUSTIC_BRIGHT *= 0.6;  // 160 → 96
-      }
       const cnv = p.createCanvas(p.windowWidth, p.windowHeight);
       cnv.id('waterripple-canvas');
       cnv.style('position', 'fixed');
