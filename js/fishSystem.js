@@ -233,10 +233,12 @@
           dir = Math.sign(e.x - nose.x) || dir;               // 往眼角外側游出
         }
       }
+      let size = Math.random() * (CFG.SIZE_MAX - CFG.SIZE_MIN) + CFG.SIZE_MIN;
+      if (window.innerWidth <= 600) size *= 0.667;   // 手機版魚縮成 2/3
       fishes.push(new Fish({
         x: cx + (Math.random() - 0.5) * 14,
         y: cy + (Math.random() - 0.5) * 10,
-        size: Math.random() * (CFG.SIZE_MAX - CFG.SIZE_MIN) + CFG.SIZE_MIN,
+        size,
         dir,
       }));
     },
