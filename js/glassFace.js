@@ -82,23 +82,38 @@ import * as THREE from 'three';
     //  - 臉外直接看到它 → 背景泳池水波動態
     //  - 玻璃臉 transmission 折射它 → 折射五官 + 折射的是「流動的泳池」→ 臉融進水裡
     bgMat = new THREE.ShaderMaterial({
-      uniforms: { uTex: { value: null }, uTime: { value: 0 } },
+      uniforms: {
+        uTex: { value: null }, uTime: { value: 0 },
+        uPlaneAspect: { value: 1 },        // plane 在螢幕的寬高比（= 視窗比例）
+        uTexAspect: { value: 1920 / 1086 } // 泳池圖原始寬高比（載入後以實際值覆蓋）
+      },
       vertexShader: `
         varying vec2 vUv;
         void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
       `,
       fragmentShader: `
-        uniform sampler2D uTex; uniform float uTime; varying vec2 vUv;
+        uniform sampler2D uTex; uniform float uTime;
+        uniform float uPlaneAspect; uniform float uTexAspect;
+        varying vec2 vUv;
+        // cover：保持圖片比例填滿、取中央（避免被螢幕比例拉伸壓縮）
+        vec2 coverUV(vec2 uv) {
+          float r = uPlaneAspect / uTexAspect;
+          vec2 o = uv;
+          if (r > 1.0) o.y = (uv.y - 0.5) / r + 0.5;   // 視窗較寬 → 垂直取中段
+          else         o.x = (uv.x - 0.5) * r + 0.5;   // 視窗較高/窄 → 水平取中段
+          return o;
+        }
         void main() {
-          vec3 col = texture2D(uTex, vUv).rgb;        // 泳池靜態（格紋不晃 → 不會整個世界在晃）
-          // 表面流動焦散光紋（caustics）：多層交錯 sin → 網狀水光在池底游移流動
-          vec2 p = vUv * 4.0;                         // 頻率降低 → 光紋範圍更大塊
-          float t = uTime * 0.55;
+          vec2 uv = coverUV(vUv);
+          vec3 col = texture2D(uTex, uv).rgb;          // 泳池格紋（cover 不變形）
+          // 流動焦散光紋（caustics）：多層交錯 sin → 網狀水光在池底游移流動
+          vec2 p = uv * 4.0;
+          float t = uTime * 0.7;                        // 速度加快 → 水光更明顯流動
           float c = sin(p.x + t) * sin(p.y - t * 0.8)
                   + sin(p.x * 1.6 - t * 0.7) * sin(p.y * 1.4 + t * 0.5);
           c = max(c, 0.0);
-          c = pow(c * 0.5, 1.7);
-          col += vec3(0.5, 0.66, 0.78) * c * 0.45;    // 偏藍白流動水光（亮度減半）
+          c = pow(c * 0.5, 1.6);
+          col += vec3(0.5, 0.66, 0.78) * c * 0.7;       // 偏藍白流動水光（加強）
           gl_FragColor = vec4(col, 1.0);
         }
       `,
@@ -109,8 +124,9 @@ import * as THREE from 'three';
     updateBgScale();
     new THREE.TextureLoader().load('assets/img/pool-bg.png?v=2', (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
-      tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping;   // UV 扭動超界不破圖
+      tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;       // cover 取中央，不需重複
       bgMat.uniforms.uTex.value = tex;
+      if (tex.image) bgMat.uniforms.uTexAspect.value = tex.image.width / tex.image.height;
     });
 
     // 補兩盞光打出尖銳高光（玻璃表面濕亮的白色亮塊，勾勒五官）
@@ -217,11 +233,12 @@ import * as THREE from 'three';
     camera.lookAt(0, 0, 0);
   }
 
-  // 背景平面縮放到填滿正交視野（略放大確保 UV 扭動時不露邊）
+  // 背景平面填滿正交視野；比例由 shader 的 coverUV 處理（不靠拉伸 plane）
   function updateBgScale() {
     if (!bgPlane) return;
     const a = window.innerWidth / window.innerHeight;
-    bgPlane.scale.set(2 * a * 1.3, 2 * 1.3, 1);   // 餘量加大 → 任何視窗比例都鋪滿不露邊
+    bgPlane.scale.set(2 * a, 2, 1);                 // 剛好填滿視野
+    if (bgMat) bgMat.uniforms.uPlaneAspect.value = a;  // 告訴 shader 目前視窗比例做 cover
   }
 
   function loop() {

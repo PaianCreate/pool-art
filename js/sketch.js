@@ -44,7 +44,7 @@ new p5(function (p) {
     t += 0.008;
     p.clear(); // 保持 canvas 透明，讓背景 img 透出來
 
-    updateWaterDisplacement(); // 背景磁磚水波流動（水底光影動態）
+    // updateWaterDisplacement(); // 關閉：DOM #pool-bg 被 WebGL bgPlane(glassFace) 蓋住看不到，每幀改 SVG 是白工。水波/caustics 改在 glassFace 的 bgPlane shader 做
     // drawCaustics(); // 已移除飄移的橢圓形光斑
     // 臉部改由 waterFace.js 的 WebGL 折射層繪製，這裡不再畫線框臉
     // drawFaceMesh();
