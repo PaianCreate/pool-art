@@ -39,6 +39,12 @@
     let lastCx = null, lastCy = null;   // 上一幀臉中心（判斷有沒有晃動）
 
     p.setup = function () {
+      // 手機螢幕小、臉佔比大 → 同強度視覺上更明顯，降強度讓波紋比照桌機視覺
+      if (window.innerWidth <= 600) {
+        CFG.EDGE_AMP *= 0.5;        // 30 → 15
+        CFG.LIGHT *= 0.55;          // 10 → 5.5
+        CFG.CAUSTIC_BRIGHT *= 0.6;  // 160 → 96
+      }
       const cnv = p.createCanvas(p.windowWidth, p.windowHeight);
       cnv.id('waterripple-canvas');
       cnv.style('position', 'fixed');
