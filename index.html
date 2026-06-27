@@ -43,7 +43,9 @@
       object-fit: cover;
       z-index: 0;
       /* 圖片載入前 / 任何露邊時的底色：用泳池圖鋪底 + 深藍打底，露出也不突兀 */
-      background: url('assets/img/pool-bg.png') center center / cover no-repeat, #2f6285;
+      background: url('assets/img/pool-bg.png?v=2') center center / cover no-repeat, #2f6285;
+      /* 水波位移濾鏡：讓整片磁磚像在水下流動（參數由 sketch.js 即時呼吸）*/
+      filter: url(#wave-filter);
     }
 
     /* ── p5 canvas：透明，疊在圖片上 ── */
@@ -391,7 +393,7 @@
   </svg>
 
   <!-- 背景圖片：把你的泳池圖放在 assets/img/pool-bg.png -->
-  <img id="pool-bg" src="assets/img/pool-bg.png" alt="">
+  <img id="pool-bg" src="assets/img/pool-bg.png?v=2" alt="">
 
   <!-- 隱藏 webcam -->
   <video id="webcam" autoplay playsinline></video>

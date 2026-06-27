@@ -44,7 +44,7 @@ new p5(function (p) {
     t += 0.008;
     p.clear(); // 保持 canvas 透明，讓背景 img 透出來
 
-    // updateWaterDisplacement(); // 已移除背景晃動（格紋靜止）
+    updateWaterDisplacement(); // 背景磁磚水波流動（水底光影動態）
     // drawCaustics(); // 已移除飄移的橢圓形光斑
     // 臉部改由 waterFace.js 的 WebGL 折射層繪製，這裡不再畫線框臉
     // drawFaceMesh();
@@ -61,20 +61,21 @@ new p5(function (p) {
   function updateWaterDisplacement() {
     if (!turbEl || !dispEl) return;
 
-    phaseX += 0.0012;
-    phaseY += 0.0018;
+    // 兩軸不同速度持續推進 → 水紋緩緩游移（不只原地漲縮）
+    phaseX += 0.0024;
+    phaseY += 0.0033;
 
     // 頻率呼吸：幅度加大，讓整片水面的紋路慢慢漲縮、來回搖晃（有機感）
-    const fx = 0.012 + Math.sin(phaseX) * 0.0045;
-    const fy = 0.008 + Math.cos(phaseY) * 0.0035;
+    const fx = 0.012 + Math.sin(phaseX) * 0.0065;
+    const fy = 0.008 + Math.cos(phaseY) * 0.0050;
     turbEl.setAttribute('baseFrequency', `${fx.toFixed(5)} ${fy.toFixed(5)}`);
 
     // seed 固定不動——大幅度位移時若整數跳 seed 會「啪」一下整片瞬移，很突兀，改用頻率＋強度呼吸來製造流動
     turbEl.setAttribute('seed', '2');
 
-    // 位移強度呼吸：在 12~20 之間慢慢起伏（原本固定 7，幾乎看不出來）
-    // t 每 frame +0.008，sin(t*0.7) 約 18 秒一個來回 → 像水面緩緩漲落
-    const scale = 16 + Math.sin(t * 0.7) * 4;
+    // 位移強度呼吸：在 16~32 之間起伏（加大 → 水底光影流動更明顯）
+    // t 每 frame +0.008，sin(t*0.6) 約 21 秒一個來回 → 像水面緩緩漲落
+    const scale = 24 + Math.sin(t * 0.6) * 8;
     dispEl.setAttribute('scale', scale.toFixed(1));
   }
 

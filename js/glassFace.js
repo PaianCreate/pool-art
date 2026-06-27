@@ -107,7 +107,7 @@ import * as THREE from 'three';
     bgPlane.position.z = -1.5;          // 臉後方 → 被臉折射
     scene.add(bgPlane);
     updateBgScale();
-    new THREE.TextureLoader().load('assets/img/pool-bg.png', (tex) => {
+    new THREE.TextureLoader().load('assets/img/pool-bg.png?v=2', (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping;   // UV 扭動超界不破圖
       bgMat.uniforms.uTex.value = tex;
