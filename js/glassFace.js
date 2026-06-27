@@ -18,7 +18,7 @@ import * as THREE from 'three';
   // ── 質感 / 對位參數（要調就改這裡）──────────────
   const CFG = {
     MIRROR: true,          // 自拍鏡像（你往右，玻璃臉往右）
-    FACE_SCALE: 1.4,       // 臉整體大小
+    FACE_SCALE: 1.8,       // 臉整體大小
     DEPTH: 2.2,            // 深度倍率（加大 → 五官更凸更立體、更突顯）
     SMOOTH: 0.4,           // 時序平滑 0~1（越小越穩越不抖、越大越即時）
     SMOOTH_SPACE: 0.3,     // 空間平滑（去三角塊面，讓玻璃表面滑順）
