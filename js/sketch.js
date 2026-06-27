@@ -3,7 +3,7 @@
  * p5.js 主畫布
  *
  * 背景策略：
- *  - <img id="pool-bg"> 用 SVG displacement filter 做水波位移
+ *  - <div id="pool-bg">（CSS background-cover）用 SVG displacement filter 做水波位移
  *  - p5 canvas 疊在上方，背景透明
  *  - canvas 只負責：caustics 光紋 / 臉部 mesh / 泡泡 / 金魚
  */

@@ -44,7 +44,6 @@
       position: fixed;
       inset: 0;
       width: 100%; height: 100%;
-      object-fit: cover;
       z-index: 0;
       /* 圖片載入前 / 任何露邊時的底色：用泳池圖鋪底 + 深藍打底，露出也不突兀 */
       background: url('assets/img/pool-bg.png?v=2') center center / cover no-repeat, #2f6285;
@@ -405,8 +404,8 @@
     </defs>
   </svg>
 
-  <!-- 背景圖片：把你的泳池圖放在 assets/img/pool-bg.png -->
-  <img id="pool-bg" src="assets/img/pool-bg.png?v=2" alt="">
+  <!-- 背景圖片：用 div + background-cover（套 SVG 濾鏡時 cover 才不會失效→不被擠壓）-->
+  <div id="pool-bg"></div>
 
   <!-- 隱藏 webcam -->
   <video id="webcam" autoplay playsinline></video>
