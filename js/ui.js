@@ -19,9 +19,15 @@
     const enterBtn    = document.getElementById('enter-btn');
     if (enterBtn && enterScreen) {
       let entered = false;
-      const enter = async () => {
+      const enter = () => {
         if (entered) return;
         entered = true;
+
+        // ⚠️ Safari/WebKit 嚴格要求：getUserMedia 必須在點擊手勢的「同步第一時間」呼叫，
+        //    若放在 await / 其他操作之後，Safari 會判定脫離手勢 → 直接拒絕、不跳詢問、綠燈不亮。
+        //    所以這行放在最前面，且不用 async/await。
+        const camPromise = navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+
         // 解鎖音訊（部分瀏覽器需手勢後 resume）
         if (window.Howler && Howler.ctx && Howler.ctx.state === 'suspended') {
           Howler.ctx.resume();
@@ -30,15 +36,15 @@
         enterScreen.classList.add('hidden');
         setTimeout(() => enterScreen.remove(), 1200);
 
-        // 先主動測試相機權限（我們自己掌控錯誤 → 顯示中文提示，而非依賴英文系統 alert）
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-          stream.getTracks().forEach((t) => t.stop());   // 釋放，交給 MediaPipe 重新開
-          if (window.startFaceTracking) window.startFaceTracking();
-        } catch (err) {
-          showCameraHelp(err);                           // 顯示中文權限提示卡
-          if (window.startSimulationMode) window.startSimulationMode();  // 降級：無相機也能看故事
-        }
+        camPromise
+          .then((stream) => {
+            stream.getTracks().forEach((t) => t.stop());   // 釋放，交給 MediaPipe 重新開
+            if (window.startFaceTracking) window.startFaceTracking();
+          })
+          .catch((err) => {
+            showCameraHelp(err);                           // 顯示中文權限提示卡
+            if (window.startSimulationMode) window.startSimulationMode();  // 降級：無相機也能看故事
+          });
       };
       enterBtn.addEventListener('click', enter);
     }
