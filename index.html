@@ -335,6 +335,10 @@
 
     /* ── 手機 RWD ── */
     @media (max-width: 600px) {
+      /* 手機關閉 SVG 水波濾鏡：iOS WebKit 套 filter 會連帶把背景壓縮變形，
+         且全螢幕大圖跑 SVG 濾鏡很耗效能 → 手機背景改靜態 cover，比例正確 */
+      #pool-bg { filter: none !important; }
+
       /* 故事卡：移到畫面下方，高度約 1/3（上方 2/3 留給互動臉）*/
       #story-panel {
         top: auto;
