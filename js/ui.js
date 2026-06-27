@@ -19,11 +19,9 @@
     const enterBtn    = document.getElementById('enter-btn');
     if (enterBtn && enterScreen) {
       let entered = false;
-      const enter = () => {
+      const enter = async () => {
         if (entered) return;
         entered = true;
-        // 啟動臉部追蹤（鏡頭）；失敗會自動切到滑鼠模擬模式
-        if (window.startFaceTracking) window.startFaceTracking();
         // 解鎖音訊（部分瀏覽器需手勢後 resume）
         if (window.Howler && Howler.ctx && Howler.ctx.state === 'suspended') {
           Howler.ctx.resume();
@@ -31,8 +29,48 @@
         // 淡出入口層，動畫結束後移除以免擋互動
         enterScreen.classList.add('hidden');
         setTimeout(() => enterScreen.remove(), 1200);
+
+        // 先主動測試相機權限（我們自己掌控錯誤 → 顯示中文提示，而非依賴英文系統 alert）
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+          stream.getTracks().forEach((t) => t.stop());   // 釋放，交給 MediaPipe 重新開
+          if (window.startFaceTracking) window.startFaceTracking();
+        } catch (err) {
+          showCameraHelp(err);                           // 顯示中文權限提示卡
+          if (window.startSimulationMode) window.startSimulationMode();  // 降級：無相機也能看故事
+        }
       };
       enterBtn.addEventListener('click', enter);
+    }
+
+    // ─────────────────────────────────────────────
+    // 相機權限失敗 → 中文友善提示卡（教怎麼開權限）
+    // ─────────────────────────────────────────────
+    function showCameraHelp(err) {
+      if (document.getElementById('cam-help')) return;     // 只顯示一次
+      const isInApp = /Instagram|FBAN|FBAV|Line|Threads|Twitter|MicroMessenger/i.test(navigator.userAgent);
+      const card = document.createElement('div');
+      card.id = 'cam-help';
+      card.innerHTML = `
+        <div class="cam-help-box">
+          <div class="cam-help-title">開啟相機才能變成水裡的臉</div>
+          <p class="cam-help-desc">
+            這個作品會即時把你的臉變成池底的玻璃，需要相機權限。
+            ${isInApp
+              ? '你目前是用 App 內建瀏覽器開啟，它不支援相機 —— 請點右上角「‧‧‧」選「在 Safari 開啟」。'
+              : '請允許相機權限後重新整理頁面：'}
+          </p>
+          <ul class="cam-help-list">
+            <li><b>iPhone</b>：用 <b>Safari</b> 開啟（App 內建瀏覽器無法用相機）</li>
+            <li><b>Mac</b>：系統設定 → 隱私權與安全性 → 相機，開啟你的瀏覽器後完全重開</li>
+            <li>網址列的相機/鎖頭圖示 → 相機 → 允許</li>
+          </ul>
+          <p class="cam-help-note">目前先以無相機模式顯示故事。</p>
+          <button class="cam-help-btn" id="cam-help-close">我知道了</button>
+        </div>`;
+      document.body.appendChild(card);
+      document.getElementById('cam-help-close')
+        .addEventListener('click', () => card.remove());
     }
 
     // ─────────────────────────────────────────────

@@ -207,3 +207,11 @@ window.startFaceTracking = function () {
   _faceStarted = true;
   initFaceMesh();
 };
+
+// ── 無相機降級：直接進模擬模式（滑鼠/觸控），讓沒相機權限的人也能看故事
+let _simStarted = false;
+window.startSimulationMode = function () {
+  if (_simStarted || _faceStarted) return;
+  _simStarted = true;
+  startSimulationMode();
+};
